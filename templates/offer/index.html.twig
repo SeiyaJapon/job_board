@@ -21,6 +21,9 @@
 
 <html>
     <body>
+        {% for message in app.flashes('success') %}
+            <p>{{ message }}</p>
+        {% endfor %}
         <table>
             <thead>
                 <tr>
