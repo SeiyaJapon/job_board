@@ -6,6 +6,7 @@ use App\Entity\Applicant;
 use App\Entity\JobOffer;
 use App\Form\ApplicationType;
 use Doctrine\ORM\EntityManagerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,7 @@ class OfferController extends AbstractController
      * @param EntityManagerInterface $entityManager
      * @return Response
      */
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager) : Response
     {
         $offer = $entityManager->getRepository(JobOffer::class)
             ->findAll();
@@ -36,7 +37,8 @@ class OfferController extends AbstractController
      * @return Response
      * @Route("offer/{id}/apply", name="offer_apply")
      */
-    public function apply(JobOffer $offer, Request $request, EntityManagerInterface $entityManager): Response {
+    public function apply(JobOffer $offer, Request $request, EntityManagerInterface $entityManager) : Response
+    {
         $applicant = new Applicant();
 
         $form = $this->createForm(ApplicationType::class, $applicant);
@@ -55,6 +57,25 @@ class OfferController extends AbstractController
         return $this->render('offer/apply.html.twig', [
             'offer' => $offer,
             'form' => $form->createView()
+        ]);
+    }
+
+    /**
+     * @IsGranted("ROLE_COMPANY_OWNER")
+     * @Route("/company/", name="company_offers_index")
+     * @return Response
+     */
+    public function companyOffers() : Response
+    {
+        $user = $this->getUser();
+        $company = $user->getCompany();
+
+        if (!$company) {
+            return $this->redirectToRoute('company_create');
+        }
+
+        return $this->render('offer/company_index.html.twig', [
+            'offers' => $company->getJobOffers()
         ]);
     }
 }
