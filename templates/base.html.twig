@@ -8,6 +8,22 @@
         {% block javascripts %}{% endblock %}
     </head>
     <body>
+        {% block messages %}
+            {% for message in app.flashes('success') %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endblock messages %}
+
+        {% block menu %}
+            <p>
+                {% if app.user %}
+                    <a href="{{ url('app_logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url('app_login') }}">Login</a>
+                {% endif %}
+            </p>
+        {% endblock %}
+
         {% block body %}{% endblock %}
     </body>
 </html>
