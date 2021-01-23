@@ -2,13 +2,19 @@
 
 namespace App\Controller;
 
+use App\Entity\Applicant;
 use App\Entity\JobOffer;
+use App\Form\ApplicationType;
 use App\Form\JobOfferType;
-use App\Repository\JobOfferRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
@@ -102,5 +108,45 @@ class JobOfferController extends AbstractController
         }
 
         return $this->redirectToRoute('job_offer_index');
+    }
+
+    /**
+     * @param JobOffer               $offer
+     * @param Request                $request
+     * @param EntityManagerInterface $entityManager
+     * @param MailerInterface        $mailer
+     * @return Response
+     * @throws TransportExceptionInterface
+     * @Route("/{id}/apply", name="offer_apply")
+     */
+    public function apply(JobOffer $offer, Request $request, EntityManagerInterface $entityManager, MailerInterface $mailer) : Response
+    {
+        $applicant = new Applicant();
+
+        $form = $this->createForm(ApplicationType::class, $applicant);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->persist($applicant);
+            $entityManager->flush();
+
+            $mailer->send(
+                (new Email())
+                    ->from('info@seiyajapon.com')
+                    ->to($offer->getCompany()->getOwner()->getEmail())
+                    ->subject('New Application received!!')
+                    ->html('<p>' . $applicant->getName() . ' applied to the offert ' . $offer->getTitle() . '</p><p>Please contact to ' . $applicant->getEmail() . '</p>')
+            );
+
+            $this->addFlash('success', 'Your application has been received!');
+
+            return $this->redirectToRoute('offer_index');
+        }
+
+        return $this->render('offer/apply.html.twig', [
+            'offer' => $offer,
+            'form' => $form->createView()
+        ]);
     }
 }
